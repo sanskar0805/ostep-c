@@ -2,6 +2,7 @@
 #include <unistd.h>      // for fork(), getpid(), getppid()
 #include <stdio.h>       // for printf(), perror()
 #include <stdlib.h>      // for exit()
+#include <sys/wait.h>
 
 int main(int argc, char *argv[]) {
     // Show the PID before fork
@@ -13,7 +14,7 @@ int main(int argc, char *argv[]) {
 
     if (pid < 0) {
         perror("fork failed!");
-        exit(1);
+        exit(1); 
     }
     else if (pid == 0) {
         // Child branch
