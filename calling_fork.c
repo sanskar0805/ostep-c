@@ -1,5 +1,6 @@
 #include <stdio.h> // IO
 #include <sys/types.h> // typedef for pid
+#include <stdlib.h> // exit()
 #include <unistd.h> // fork()
 
 int main(int argc, char * argv[]){
@@ -10,7 +11,7 @@ int main(int argc, char * argv[]){
         exit(1);
     }
     else if (rc == 0){ // child (new process)
-        printf("Hello I am child (pid: %d)\n", (int) getpid)
+        printf("Hello I am child (pid: %d)\n", (int) getpid());
     }
     else { // parent goes down this path
         printf("hello, I am parent of %d (pid: %d)\n", rc, (int) getpid());
