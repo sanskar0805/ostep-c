@@ -117,10 +117,10 @@ And if the fork returns a value > 0, then, we are inside the parent process and 
   - _Correct sequencing_ : If the parent terminates before the child, then the child gets reparented to `init(PID 1)`. This would further can break the logic, if the child needs its actual parent pid.
 - **How `wait(NULL)` guarantees the order ?**
   - *Scenario A (Parent runs first)*
-    - The parent reaches `wait(NULL)` and then immediately blocks blocks.
+    - The parent reaches `wait(NULL)` and then immediately gets blocked.
     - The scheduler then runs the child.
     - The child prints its line, exits and its termination then **wakes up** the parent. Only then does the parent executes its printf().
-    This waking up, is what is done in **Context Switching.**
+    This waking up, is what is called **Context Switching.**
 
   - *Scenario B (Child runs first)*
     - The child runs, prints its line and ends. 
