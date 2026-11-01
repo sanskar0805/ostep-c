@@ -111,6 +111,23 @@ int main(int argc, char *argv[]){}
 29 }
 ```
 
+- Linux does not provide a single `exec()` system call, it provides a family of it: 
+
+|function|usage|
+|:------:|:---:|
+|execl()|Execute a program by specifying its path and passing arguments as a list of separate parameters.|
+|execlp()|Same as execl(), but searches for the executable in the directories listed in the PATH environment variable.|
+|execle()|Same as execl(), but allows supplying a custom environment for the new process.|
+|execv()|Execute a program by specifying its path and passing arguments as an array (vector) of strings.|
+|execvp()|Same as execv(), but searches for the executable using the PATH environment variable.|
+|execvpe()|Same as execvp(), but also allows specifying a custom environment for the new process.|
+
+- Naming convention
+  - l → arguments are passed as a list (arg1, arg2, ...)
+  - v → arguments are passed as a vector/array (argv[])
+  - p → search executable in PATH
+  - e → provide a custom environment (envp[])
+
 ## headers used
 ```c
 #include <sys/types.h>
@@ -186,15 +203,6 @@ And if the fork returns a value > 0, then, we are inside the parent process and 
   - If you want to keep making copies of the same current running program then you call `fork()` system call.
   - But if you want to execute another program, then you use `exec()` system call.
   - `exec()` comes under `#include <unistd.h>` header.
-  - Linux does not provide a single `exec()` system call, it provides a family of it: 
-  |function|usage|
-  |:------:|:---:|
-  |execl()||
-  |execlp()||
-  |execle()||
-  |execv()||
-  |execvp()||
-  |execvpe()||
 
   - All of the above commands, will eventually call the kernel's `execve()`.
 ```cpp
@@ -329,3 +337,5 @@ int execve(const char *pathname,
   myargs[0] = strdup("wc");
   ```
   - creates a real writable string in heap memory and returns a char *.
+
+  
