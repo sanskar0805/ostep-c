@@ -67,6 +67,50 @@ Line 18: return 0;                                        ← both reach here an
 > Thus, fork() is executed exactly once per process, and only the original process ever reaches it.
 
 
+## exec()
+- Final and important process creation system call API is `exec()`.
+- Useful when you want to execute a process other than the current process.
+> calling fork() is only usefull when you want to keep running the copies of the current program, but sometimes you might need to execute other commands completing replacing the code line with some other command, `exec()` does that.
+```c
+int main(int argc, char *argv[]){}
+```
+- given a name of the executable (ex. /bin/ls) and some arguments (`*argv[]`) it loads code (and static data) from that executable and overwrites its current code segment (and current static data) with it;
+- the heap and stack and other parts of the memory space are reinitialised.
+- `exec()` does not create a new process, rather it transforms the current running process into some other process.
+- After `exec()`, the parent is almost like it never ran.
+
+```c
+1  #include <stdio.h>
+2  #include <stdlib.h>
+3  #include <unistd.h>
+4  #include <string.h>
+5  #include <sys/wait.h>
+6
+7  int
+8  main(intargc,char *argv[])
+9  {
+10      printf("helloworld (pid:%d)\n",(int)getpid());
+11      int rc= fork();
+12      if (rc< 0) { // forkfailed;exit
+13          fprintf(stderr,"forkfailed\n");
+14      exit(1);
+15      } else if (rc== 0) {// child(new process)
+16          printf("hello,Iam child(pid:%d)\n",(int)getpid());
+17          char *myargs[3];
+18          myargs[0]= strdup("wc"); // program:"wc" (wordcount)
+19          myargs[1]= strdup("p3.c");// argument:file tocount
+20          myargs[2]= NULL; // marksendof array
+21          execvp(myargs[0],myargs); // runswordcount
+22          printf("thisshouldn’tprintout");
+23      } else{ // parentgoesdown thispath(main)
+24          intwc = wait(NULL);
+25          printf("hello,Iam parentof %d(wc:%d)(pid:%d)\n",
+26              rc,wc, (int)getpid());
+27      }
+28      return0;
+29 }
+```
+
 ## headers used
 ```c
 #include <sys/types.h>
@@ -89,6 +133,8 @@ Line 18: return 0;                                        ← both reach here an
 - `#include <sys/wait.h>` : header for wait(NULL) command, helps in making barrier to Synchronisation.
 
 ## Learning
+---
+### fork()
 - each time our executible gets a `new PID` assigned to it, so each execution prints new `PID` value. 
 - No two processes share the same `PID`.
 - use wait() using the header `#include <sys/wait.h>`. This prevents the parent process from terminating before the child process is terminated. 
@@ -131,4 +177,155 @@ And if the fork returns a value > 0, then, we are inside the parent process and 
   - **_Synchronization_**: it blocks the parent, enforcing the desired execution order.
   - **_Reaping (Preventing Zombies)_** : when child exits, the kernel keeps a small record of it (its PID, exit status, resource usage) in the process table.
   This defunct process is called **zombie.**
-  wait() (or waitpid()) is the mechanism that allows the parent to collect the information and tell the kernel to **release the zombie's record**, freeing up system resources.
+  wait() (or waitpid()) is the mechanism that allows the parent to collect the information and tell the kernel to **release the zombie's record**, freeing up system resources.<br><br>
+
+---
+### exec()
+- **What if you want to execute a program that is different from the calling program?**
+
+  - If you want to keep making copies of the same current running program then you call `fork()` system call.
+  - But if you want to execute another program, then you use `exec()` system call.
+  - `exec()` comes under `#include <unistd.h>` header.
+  - Linux does not provide a single `exec()` system call, it provides a family of it: 
+  |function|usage|
+  |:------:|:---:|
+  |execl()||
+  |execlp()||
+  |execle()||
+  |execv()||
+  |execvp()||
+  |execvpe()||
+
+  - All of the above commands, will eventually call the kernel's `execve()`.
+```cpp
+#include <unistd.h>
+
+int execve(const char *pathname,
+          const char* argv[],
+          const char* envp[]);
+```
+  - `char* argv[]` is a list containing the arguments passed together inside the shell and kept in a note of arg0, arg1, arg2..., argn  consisting of one or more pointers null-terminated strings that represent the argument.
+  - **Why there is a need of exec() ?**:
+    - Suppose you want to execute `ls -a` (listing all the files and folders inside a directory including hidden) in a shell.
+    Now shell is itself a process running on OS.
+    `ls -a` is trying to call `ls` process command in order to execute it inside the current process. 
+    Linux needs something to load an entirely different executable. 
+    That mechanism is called **`exec()`**.
+
+> Extra: 
+> `symlinks` are the **Linux Symbolic Links** and are supposed to be a directory shortcut in linux. 
+> Windows doesn't understand these.
+> Inside the linux command line, the operating system knows exactly what a symbolic link is.
+> For example:
+>```bash
+>/bin
+>``` 
+> Think of `/bin` as a signpost that says: "Hey, I don't actually hold any files here. Please automatically redirect all the traffic to `/usr/bin`.
+
+> To prove if a link is a `symlink` use:
+> ```bash
+> ls -ld /bin
+> ```
+> **Output**: lrwxrwxrwx ... /bin -> usr/bin
+
+- **What happens when a program consists of an `exec()` command ?**
+  - The current process will run our program that consist of the shell code
+  - after a successfull `exec()` the original program code is replaced by the `exec()` shell code program. 
+  - The the program that consist of our shell code, now doesn't exist.
+  - Note: The process that is running remains the same, thus PID remains the same. (You can verify using the `fork()` system call.)
+
+  - But How we can prevent the shell from terminating automatically when `exec()` is run ?:
+    - This is where things get interesting. **Most linux programs use :** 
+    ```bash
+    fork() and exec()
+    ```
+
+    - fork() creates a copy of the parent process
+    ```text
+    Shell 
+     PID=100
+      | 
+      +---- Child 
+      PID=101
+    ```
+
+    - Now both the process continue execution from the next line.
+    - `fork()` first
+    - Then child execs ls
+    - final state
+    ```text
+    Shell (parent)
+           | 
+           +---- ls (child)
+    ```
+    - when ls exits, Shell survives (parent process running our shell).<br><br>
+
+- **How shell executes command ?**
+  Let us use `ls -l` as an example:
+  - **_Step 1_**: Shell reads input
+  ```bash
+  ls -l
+  ```
+  - **_Step 2_**: Parse
+  Shell Identifies:
+  ```bash
+  Program: ls
+
+  Arguments:
+    argv[0] = "ls"
+    argv[1] = "-l"
+  ```
+
+  - **_Step 3_**: `fork()`
+  ```c
+  pid = fork();
+  ```
+
+  kernel creates child process.
+  - **_Step 4_**: Child executes `exec()`
+  Child: 
+  ```c
+  execvp("ls", argv);
+  ```
+  Kernel loads
+  ```text
+  /bin/ls
+  ```
+  over child memory
+  Now child no longer bash.
+  Child became:
+  ```
+  ls
+  ```
+  - **_Step 5_**: parent waits
+  ```c
+  waitpid(pid, ...);
+  ```
+
+  - **_Step 6_** : child exits
+  After listing files:
+  ```c
+  exit(0);
+  ```
+  **Kernel destroys the child.**
+  - **_Step 7_**: Shell continues
+  Prompt appears:
+  ```bash
+  $
+  ```
+  again.
+
+  > This fork() → exec → wait cycle is the heart of Unix.
+
+- arguments in `execvp()` must end with `NULL`, so at the end of arguments, you must put `NULL`
+- `execvp(program, arguments);` Here, the first argument takes the executable file and the second argument passed in execvp() is the actual code that is run in that executable.
+
+- `strdup()` is used for duplicating a string.
+  - In our case, string literals already exist in the memory, so we are not needed to copy the things.
+  - that's why we don't require `strdup()` in our case right now.
+  - we used `strdup()` for pedagogical reasons (according to OSTEP)
+  - It emphasizes that argv is an array of **character pointers (char *)** pointing to strings.
+  ```c
+  myargs[0] = strdup("wc");
+  ```
+  - creates a real writable string in heap memory and returns a char *.
