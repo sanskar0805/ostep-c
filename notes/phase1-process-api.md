@@ -338,4 +338,15 @@ int execve(const char *pathname,
   ```
   - creates a real writable string in heap memory and returns a char *.
 
-  
+
+---
+## **Projects**
+### Mini shell:
+- What it will use:
+  1. Read input → getline()
+  2. Parse command → strtok()
+  3. Create child process → fork()
+  4. Execute program → exec()
+  5. Parent waits → wait()
+  6. Handle built-in commands (e.g., cd) → chdir
+
